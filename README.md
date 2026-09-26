@@ -1,4 +1,4 @@
-#MonoMetrics
+MonoMetrics
 
 Privacy-focused visitor counter. Self-hosted, open source, no tracking.
 
