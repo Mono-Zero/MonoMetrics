@@ -1,33 +1,33 @@
 # MonoMetrics
 
-Privacy-focused visitor counter. Self-hosted, open source, no tracking.
+Visitor counter that can't tell who visited
 
-## What it does differently
+## the difference
 
-Standard analytics stores your IP and device info, often tied to a cookie, so the site owner can recognize you across visits. This doesn't.
+Normal trackers keep your IP + device often with a cookie so they recognize you next time This doesn't keep anything
 
-Your IP gets hashed with a salt that changes every day, then discarded. The hash is one-way — can't be reversed back to your IP. Because the salt rotates daily, the same visitor hashes to a different value tomorrow, so there's no way to link visits across days.
+IP gets mixed with a daily changing random value hashed into garbage thrown out Can't reverse it Tomorrow's garbage text won't match today's for the same person so there's nothing to link across visits
 
-Instead of storing per-visitor records, hits get fed into a HyperLogLog counter — a data structure that estimates unique counts without storing individual entries. There's no visitor list to query, no lookup table, nothing to breach or subpoena that would reveal who visited.
+Instead of a visitor list hits go into a HyperLogLog counter just estimates how many uniques without storing who they were No list means no list to leak
 
-## What it collects
+## collects
 
-Page URL and device type (mobile/desktop). Nothing else. No fingerprinting.
+Page URL mobile/desktop Nothing else
 
-## What you get
+## returns
 
-Daily unique visitor estimate via JSON endpoint. Build your own dashboard on top if you want one.
+A daily unique count via JSON No dashboard, wire it up yourself
 
-## Tradeoff
+## catch
 
-Counts are estimates (~1-2% margin of error), not exact. That's the cost of the counting method not retaining individual records to recount from.
+Estimate off by ~1-2% Price of not keeping records
 
-## Self-hosted only
+## hosting
 
-No central server. You run it, you own the data (or lack thereof). Code's public — verify the claims yourself instead of trusting a privacy policy.
+Yours not mine No central server collecting everyone's stuff Code's open check it instead of trusting me
 
-## Setup
+## setup
 
-1. Deploy the server (single file, minimal deps)
-2. Add the one-line script tag to your site
-3. Query the JSON endpoint for counts
+1. run the server
+2. paste the script tag
+3. hit the endpoint for counts
