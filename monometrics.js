@@ -1,7 +1,7 @@
 // monometrics.js
-// Paste this as a <script> tag on any page you want counted.
-// Sends: current page URL + whether the device looks mobile or desktop.
-// Sends nothing else. No cookies, no localStorage, no fingerprinting.
+// Paste this as a <script> tag on any page you want counted
+// Sends: current page URL + whether the device looks mobile or desktop
+// Sends nothing else No cookies no localStorage no fingerprinting
 //
 // <script src="https://your-server.example/monometrics.js"
 //         data-endpoint="https://your-server.example"></script>
@@ -21,11 +21,11 @@
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      url: location.pathname, // path only — no query string, no hash, no domain
+      url: location.pathname, // path only no query string no hash no domain
       device: isMobile ? 'mobile' : 'desktop',
     }),
     keepalive: true,
   }).catch(function () {
-    // Fail silently — a dead counter shouldn't break the page.
+    // Fail silently a dead counter shouldn't break the page.
   });
 })();
