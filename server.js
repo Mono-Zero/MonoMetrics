@@ -1,21 +1,9 @@
-// ============================================================================
-// MonoMetrics — a visitor counter that can't tell who visited
-// ============================================================================
-//
-// One file, five sections, in the order data flows through the system:
-//   1. DAILY SALT     — random value, rotates every UTC midnight
-//   2. IP HASHING     — mixes salt into the IP so it can't be reversed or linked day-to-day
-//   3. HYPERLOGLOG    — estimates unique hashes seen, without storing the hashes
-//   4. STORAGE        — one HyperLogLog per (day, url, device)
-//   5. HTTP SERVER    — /hit and /count endpoints
-//
 // Run: node server.js
 // Env vars:
 //   PORT=3000       — port to listen on
 //   TRUST_PROXY=1   — trust X-Forwarded-For for the real IP (only if you're
 //                     actually behind a reverse proxy that sets it — otherwise
-//                     clients can spoof their own IP with this header)
-// ============================================================================
+//                     clients can spoof their own IP with this header
 
 const http = require('http');
 const crypto = require('crypto');
@@ -23,12 +11,9 @@ const { URL } = require('url');
 
 const PORT = process.env.PORT || 3000;
 
-
-// ============================================================================
 // SECTION 1: DAILY SALT
-// ============================================================================
 //
-// 32 random bytes, generated fresh once per UTC day, kept only in memory —
+// 32 random bytes, generated fresh once per UTC day, kept only in memory 
 // never logged or written to disk. When the day rolls over, the old salt is
 // gone for good. That's what makes today's hash and tomorrow's hash of the
 // same IP unlinkable: the only thing that could prove they're related no
@@ -51,10 +36,7 @@ function getCurrentSalt() {
   return { salt: currentSalt, date: currentSaltDate };
 }
 
-
-// ============================================================================
 // SECTION 2: IP HASHING
-// ============================================================================
 //
 // SHA-256(ip + salt + date) — turns an identifying IP into a hash that isn't.
 // The salt makes it unreversible and unlinkable across days; the date is
@@ -72,7 +54,7 @@ function hashVisitorIP(ip) {
 
 // Picks which IP to use for a request. Default: the socket's remote address
 // (correct if this server faces the internet directly). With TRUST_PROXY=1,
-// reads X-Forwarded-For instead — only safe behind a proxy that sets that
+// reads X-Forwarded-For instead only safe behind a proxy that sets that
 // header itself, since otherwise a client can fake it.
 function getClientIP(req) {
   const forwardedHeader = req.headers['x-forwarded-for'];
@@ -82,22 +64,14 @@ function getClientIP(req) {
   return req.socket.remoteAddress;
 }
 
-
-// ============================================================================
 // SECTION 3: HYPERLOGLOG
-// ============================================================================
 //
 // Estimates "how many distinct hashes have I seen" without keeping a list.
 // Each hash is split into a bucket index + a leading-zero-bit streak length;
 // each of the 16,384 buckets just remembers the longest streak that's landed
 // in it. Longer streaks are rarer, so the longest streak seen roughly implies
-// how many hashes it took to find one — combine all 16,384 buckets and you
-// get an estimate accurate to about 0.8% (matches the README's "~1-2%").
-//
-// Privacy-wise, this is the second half of the story: a bucket only ever
-// holds one small number, and the hash that updated it is discarded
-// immediately. There's no way to reconstruct which hashes (or IPs) produced
-// the final set of numbers — that's "no list to leak."
+// how many hashes it took to find one combine all 16,384 buckets and you
+// get an estimate accurate to about 0.8%
 
 const HLL_REGISTER_BITS = 14; // 2^14 = 16,384 buckets
 const HLL_NUM_REGISTERS = 1 << HLL_REGISTER_BITS;
@@ -110,7 +84,7 @@ class HyperLogLog {
     this.registers = new Uint8Array(HLL_NUM_REGISTERS);
   }
 
-  // Feed one hash in. After this call, the hash is gone — only its effect
+  // Feed one hash in. After this call, the hash is gone only its effect
   // on (at most) one bucket remains.
   add(hashHex) {
     const hashAsBigInt = BigInt('0x' + hashHex);
@@ -170,12 +144,9 @@ function countLeadingZeroBits(value, bitLength) {
   return zeroCount;
 }
 
-
-// ============================================================================
 // SECTION 4: STORAGE
-// ============================================================================
 //
-// One HyperLogLog per (day, url, device), kept in an in-memory Map — nothing
+// One HyperLogLog per (day, url, device), kept in an in-memory Map nothing
 // written to disk or a database. Counts reset on restart, and won't be
 // shared across multiple server instances. Fine for a minimal version; if you
 // need persistence, serialize each HyperLogLog's `registers` array (e.g.
@@ -202,7 +173,7 @@ function getUniqueCount(date, urlAndDevice) {
 }
 
 // Drops counters older than `days` days, to cap memory on long-running
-// servers. Not called automatically — wire it up below if you want it.
+// servers. Not called automatically wire it up below if you want it.
 function pruneCountersOlderThan(days) {
   const cutoffTimestamp = Date.now() - days * 24 * 60 * 60 * 1000;
   for (const key of dailyCounters.keys()) {
@@ -214,12 +185,9 @@ function pruneCountersOlderThan(days) {
   }
 }
 
-
-// ============================================================================
 // SECTION 5: HTTP SERVER
-// ============================================================================
 //
-// Thin on purpose — the actual logic already happened in sections 1-4. No
+// Thin on purpose the actual logic already happened in sections 1-4. No
 // framework, just Node's built-in http module: fewer dependencies, nothing
 // between you and what's happening on the wire.
 //
@@ -275,7 +243,7 @@ async function handleHitRequest(req, res) {
   const urlAndDevice = `${pageURL}::${device}`;
   recordHit(date, urlAndDevice, hash);
 
-  // Nothing meaningful to send back — the client script doesn't read this.
+  // Nothing meaningful to send back the client script doesn't read this.
   return sendJSONResponse(res, 204, {});
 }
 
@@ -295,7 +263,7 @@ function handleCountRequest(req, res, requestURL) {
     uniqueCount = getUniqueCount(date, `${pageURL}::${deviceFilter}`);
   } else {
     // No filter: mobile + desktop added together (simple sum of two
-    // separate estimates, not a true HLL merge — close enough here).
+    // separate estimates, not a true HLL merge close enough here).
     uniqueCount =
       getUniqueCount(date, `${pageURL}::mobile`) +
       getUniqueCount(date, `${pageURL}::desktop`);
@@ -311,7 +279,7 @@ function handleCountRequest(req, res, requestURL) {
 const server = http.createServer(async (req, res) => {
   const requestURL = new URL(req.url, `http://${req.headers.host}`);
 
-  // Allow any origin — this is meant to be embedded on whatever site you
+  // Allow any origin  this is meant to be embedded on whatever site you
   // put the script tag on, and there's no cookie/session for CORS to protect.
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
